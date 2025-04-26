@@ -16,6 +16,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.xhy.domain.rag.dto.req.RerankRequest;
 import org.xhy.domain.rag.dto.resp.RerankResponse;
+import org.xhy.infrastructure.rag.client.RerankClient;
 import org.xhy.infrastructure.rag.config.RerankProperties;
 
 /**
@@ -25,8 +26,15 @@ import org.xhy.infrastructure.rag.config.RerankProperties;
 @Service
 public class RerankDomainService {
 
-    @Resource
-    private RerankProperties rerankProperties;
+    private final RerankProperties rerankProperties;
+
+    private final RerankClient rerankClient;
+
+    public RerankDomainService(RerankProperties rerankProperties, RerankClient rerankClient) {
+        this.rerankProperties = rerankProperties;
+        this.rerankClient = rerankClient;
+    }
+
 
     public List<EmbeddingMatch<TextSegment>> rerankDocument(EmbeddingSearchResult<TextSegment> textSegmentEmbeddingSearchResult,String question) {
 
@@ -39,22 +47,7 @@ public class RerankDomainService {
         rerankRequest.setQuery(question);
         rerankRequest.setDocuments(list);
 
-        // todo xhy 我觉得把这一块抽离出来做成 ReRankAPI放在 基础设施层，让 api 和业务剥离开来，这样
-        // /Users/xhy/course/AgentX/AgentX/src/main/java/org/xhy/domain/rag/dto/req/resp 就可以抽离了
-        // 也更利于维护， api 和业务不要强绑定，避免后续测试 api 的时候不能最小化测试
-        final HttpRequest build = HttpRequest.builder()
-                .addHeader("accept", "application/json")
-                .addHeader("Content-Type", "application/json; charset=utf-8")
-                .addHeader("Authorization", rerankProperties.getApiKey())
-                .method(HttpMethod.POST)
-                .url(rerankProperties.getApiUrl())
-                .body(JSONObject.toJSONString(rerankRequest)).build();
-
-        HttpClient httpClient = new JdkHttpClient(new JdkHttpClientBuilder());
-        String response = httpClient.execute(build).body();
-
-        final RerankResponse rerankResponse = JSONObject.toJavaObject(JSONObject.parseObject(response),
-                RerankResponse.class);
+        final RerankResponse rerankResponse = rerankClient.rerank(rerankRequest);
 
         final List<RerankResponse.SearchResult> results = rerankResponse.getResults();
 

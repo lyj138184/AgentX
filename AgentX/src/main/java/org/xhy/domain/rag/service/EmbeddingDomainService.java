@@ -77,7 +77,17 @@ public class EmbeddingDomainService implements MetadataConstant {
      * @return List<Document> 文档列表
      */
     public List<DocumentUnitEntity> ragDoc(List<String> dataSetId, String question) {
-        // todo xhy valid  question dataSetId
+
+        if (StrUtil.hasBlank(question)) {
+            log.warn("Question is empty");
+            throw new IllegalArgumentException("Question is empty");
+        }
+
+        if (ObjectUtil.isEmpty(dataSetId)) {
+            log.warn("DataSetId is empty");
+            throw new IllegalArgumentException("dataSetId is empty");
+        }
+
         final EmbeddingSearchResult<TextSegment> textSegmentList = embeddingStore.search(
                 EmbeddingSearchRequest.builder()
                         .filter(new IsIn(DATA_SET_ID, dataSetId))
