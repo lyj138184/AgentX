@@ -13,9 +13,11 @@ import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.xhy.domain.rag.dto.req.RerankRequest;
 import org.xhy.domain.rag.dto.resp.RerankResponse;
+import org.xhy.domain.rag.dto.resp.RerankResponse.SearchResult;
 import org.xhy.infrastructure.rag.client.RerankClient;
 import org.xhy.infrastructure.rag.config.RerankProperties;
 
@@ -36,7 +38,7 @@ public class RerankDomainService {
     }
 
 
-    public List<EmbeddingMatch<TextSegment>> rerankDocument(EmbeddingSearchResult<TextSegment> textSegmentEmbeddingSearchResult,String question) {
+    public List<EmbeddingMatch<TextSegment>> rerankDocument(EmbeddingSearchResult<TextSegment> textSegmentEmbeddingSearchResult,String question,Integer maxResults, Double minScore) {
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
 
@@ -46,12 +48,18 @@ public class RerankDomainService {
         rerankRequest.setModel(rerankProperties.getModel());
         rerankRequest.setQuery(question);
         rerankRequest.setDocuments(list);
+        rerankRequest.setMaxChucksPerDoc(maxResults);
 
         final RerankResponse rerankResponse = rerankClient.rerank(rerankRequest);
 
         final List<RerankResponse.SearchResult> results = rerankResponse.getResults();
 
-        results.forEach(result -> {
+        final List<SearchResult> searchResults = results.stream()
+                .filter(match -> match.getRelevanceScore() >= minScore)
+                .toList();
+
+
+        searchResults.forEach(result -> {
             final Integer index = result.getIndex();
             matches.add(textSegmentEmbeddingSearchResult.matches().get(index));
         });

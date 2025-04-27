@@ -76,7 +76,7 @@ public class EmbeddingDomainService implements MetadataConstant {
      * @param question 内容
      * @return List<Document> 文档列表
      */
-    public List<DocumentUnitEntity> ragDoc(List<String> dataSetId, String question) {
+    public List<DocumentUnitEntity> ragDoc(List<String> dataSetId, String question, Integer maxResults, Double minScore) {
 
         if (StrUtil.hasBlank(question)) {
             log.warn("Question is empty");
@@ -91,12 +91,12 @@ public class EmbeddingDomainService implements MetadataConstant {
         final EmbeddingSearchResult<TextSegment> textSegmentList = embeddingStore.search(
                 EmbeddingSearchRequest.builder()
                         .filter(new IsIn(DATA_SET_ID, dataSetId))
-                        .maxResults(15)
+                        .maxResults(25)
                         .queryEmbedding(Embedding.from(openAiEmbeddingModel.embed(question).content().vector()))
                         .build());
 
         final List<EmbeddingMatch<TextSegment>> embeddingMatches = rerankService.rerankDocument(textSegmentList,
-                question);
+                question,maxResults, minScore);
 
         final List<String> documentId = Steam.of(embeddingMatches).map(textSegmentEmbeddingSearchResult -> {
 
