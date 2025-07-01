@@ -4,6 +4,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.xhy.domain.rag.message.RagDocSyncOcrMessage;
 import org.xhy.infrastructure.mq.enums.EventType;
+import org.xhy.infrastructure.mq.events.RagDocSyncOcrEvent;
 import org.xhy.infrastructure.mq.events.RagDocSyncStorageEvent;
 
 /**
@@ -14,7 +15,6 @@ import org.xhy.infrastructure.mq.events.RagDocSyncStorageEvent;
 public class RagDocDomainChuckService {
 
 
-
     private final ApplicationContext applicationContext;
 
 
@@ -23,7 +23,7 @@ public class RagDocDomainChuckService {
     }
 
     /**
-     * 根据文件id开始入库数据
+     * 根据文件id开始索引数据
      * @param fileId 文件id
      */
     public void ragDocChuckInsert(String fileId) {
@@ -32,8 +32,20 @@ public class RagDocDomainChuckService {
 
         ragDocSyncOcrMessage.setFileId(fileId);
 
-        applicationContext.publishEvent(new RagDocSyncStorageEvent<>(ragDocSyncOcrMessage, EventType.DOC_REFRESH_ORG));
+        applicationContext.publishEvent(new RagDocSyncStorageEvent<>(ragDocSyncOcrMessage, EventType.DOC_SYNC_RAG));
 
+    }
+
+    /**
+     * 根据文件id开始入库数据
+     */
+    public void ragDocChuckStorage(String fileId) {
+
+        final RagDocSyncOcrMessage ragDocSyncOcrMessage = new RagDocSyncOcrMessage();
+
+        ragDocSyncOcrMessage.setFileId(fileId);
+
+        applicationContext.publishEvent(new RagDocSyncOcrEvent<>(ragDocSyncOcrMessage, EventType.DOC_REFRESH_ORG));
     }
 
 }
